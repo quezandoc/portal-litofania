@@ -1,5 +1,0 @@
-streamlit
-numpy
-numpy-stl
-Pillow
-streamlit-stl

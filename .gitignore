@@ -1,0 +1,238 @@
+# Archivos de entorno
+.env
+.env.local
+.env.*.local
+.env.prod
+
+# Node modules y builds
+node_modules/
+dist/
+build/
+.svelte-kit/
+.next/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Entornos virtuales Python
+venv/
+ENV/
+env/
+.venv/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+*.sublime-project
+*.sublime-workspace
+.editorconfig
+
+# JetBrains
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# Visual Studio Code
+.vscode/
+*.code-workspace
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+.directory
+.Trash-*
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# Testing
+.nyc_output/
+coverage/
+.coverage
+htmlcov/
+
+# Archivos temporales
+*.tmp
+*.temp
+*.bak
+*.backup
+*.cache
+temp/
+tmp/
+
+# Docker
+.dockerignore
+docker-compose.override.yml
+
+# Archivos generados
+*.stl
+test_model.stl
+generated/
+
+# Bases de datos
+*.db
+*.sqlite
+*.sqlite3
+*.pgn
+
+# Secretos y credenciales
+.env.secrets
+secrets.json
+*.pem
+*.key
+private_key
+
+# Directorios compilados
+dist/
+build/
+out/
+
+# Archivos de caché de npm
+.npm
+.eslintcache
+.stylelintcache
+
+# Archivos de caché de pip
+.pip-cache/
+
+# Archivos de módulos compilados C
+*.so
+*.dylib
+*.dll
+*.exe
+
+# Archivos de distribución
+*.whl
+*.egg
+
+# Directorios de build específicos
+/backend/venv/
+/frontend/node_modules/
+/frontend/.svelte-kit/
+
+# Archivos específicos del sistema
+.env.development.local
+.env.test.local
+.env.production.local
+
+# OS específicos
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# IDE específicos
+.vscode/settings.json
+.idea/workspace.xml
+.idea/usage.statistics.xml
+.idea/dictionaries
+.idea/shelf
+
+# Archivos lock opcionales (descomentar si necesario mantenerlos)
+# package-lock.json
+# yarn.lock
+# poetry.lock
+
+# Archivos de Jupyter
+.ipynb_checkpoints
+*.ipynb
+
+# Archivos de caché de Python
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+
+# Carpetas de distribución
+site/
+dist/
+build/
+wheels/
+
+# Archivos de dependencias
+node_modules/
+vendor/
+.bundle/
+
+# Carpeta de uploads (si aplica)
+uploads/
+media/
+static/files/
+
+# Archivos de configuración local
+local_settings.py
+wsgi.py
+
+# Archivos generados por herramientas
+.coverage
+.pytest_cache/
+.tox/
+.hypothesis/
+
+# Otros
+*.orig
+*.rej
+*.swp
+*.vim
+*~
+.~*
+.#*
+
+# Binarios de Node
+node_modules/.bin/
+
+# Caché de pip
+.cache/
+pip-cache/

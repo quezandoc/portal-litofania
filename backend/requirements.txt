@@ -4,4 +4,4 @@ numpy==1.24.3
 numpy-stl==3.0.1
 Pillow==10.1.0
 python-multipart==0.0.6
-
+scipy==1.11.2

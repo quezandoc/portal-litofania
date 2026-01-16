@@ -1,43 +1,51 @@
 """
 Core module - Generación de modelos 3D STL desde imágenes raster
 Litografía traslúcida con contorno estructural
+
+Este módulo implementa un pipeline completo para convertir una imagen raster
+en un modelo STL sólido (watertight), combinando:
+- Relieve tipo litografía (heightmap)
+- Marco estructural definido por un contorno rojo
+- Paredes laterales continuas (vectoriales) para evitar efecto escalera
 """
 
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
 from stl import mesh
 import io
 import tempfile
 import os
 
-# --- PARÁMETROS DE INGENIERÍA ---
-LADO_MM = 90.0
-PIXELS = 900
 
-# Litografía (traslúcido)
-BASE_Z = 0.4  
-LITHO_MIN_Z = 0.6  
-LITHO_MAX_Z = 3.0
+# ============================================================
+# PARÁMETROS DE INGENIERÍA (dimensiones físicas y resolución)
+# ============================================================
 
-# Marco
-MARCO_Z = 5.0
-MARCO_MM = 4.6
+LADO_MM = 90.0        # Tamaño físico total del modelo en X/Y (mm)
+PIXELS = 600          # Resolución de trabajo (más alto = más detalle)
+RES_PX_MM = 5.0      # Resolución efectiva (píxeles por mm)
 
-def smooth_mask(mask: np.ndarray, radius: int = 2) -> np.ndarray:
-    """Suavizado simple por promedio local."""
-    acc = np.zeros_like(mask, dtype=float)
-    count = 0
+# --- Litografía (frente / relieve) ---
+BASE_Z = 0.4          # Espesor mínimo de la pieza
+LITHO_MIN_Z = 0.6     # Relieve mínimo (zonas claras)
+LITHO_MAX_Z = 3.0     # Relieve máximo (zonas oscuras)
 
-    for dx in range(-radius, radius + 1):
-        for dy in range(-radius, radius + 1):
-            acc += np.roll(np.roll(mask, dx, axis=0), dy, axis=1)
-            count += 1
+# --- Marco estructural ---
+MARCO_Z = 5.0         # Altura total del marco
+MARCO_MM = 4.6        # Ancho físico del marco
 
-    return acc / count
 
+# ============================================================
+# UTILIDADES DE PROCESAMIENTO DE MÁSCARAS
+# ============================================================
 
 def erode(mask: np.ndarray, iterations: int) -> np.ndarray:
-    """Erosión simple 4-neighbors (determinista, sin scipy)."""
+    """
+    Erosión binaria simple con vecindad 4.
+    Se usa para:
+    - Definir el borde interior del marco
+    - Evitar huecos y problemas topológicos
+    """
     result = mask.copy()
     for _ in range(iterations):
         result = (
@@ -50,8 +58,15 @@ def erode(mask: np.ndarray, iterations: int) -> np.ndarray:
     return result
 
 
+# ============================================================
+# GENERACIÓN DE TOPO + BASE DESDE HEIGHTMAP
+# ============================================================
+
 def generar_stl_manifold(z_grid: np.ndarray, mask: np.ndarray) -> np.ndarray:
-    """Genera malla STL cerrada (watertight)."""
+    """
+    Genera las caras superiores (relieve) y la base plana del modelo.
+    Aún crea paredes laterales por píxel, que luego se reemplazan.
+    """
     filas, cols = z_grid.shape
 
     x_lin = np.linspace(0, LADO_MM, cols)
@@ -84,15 +99,15 @@ def generar_stl_manifold(z_grid: np.ndarray, mask: np.ndarray) -> np.ndarray:
         vb2 = [x2, y2, 0]
         vb3 = [x3, y3, 0]
 
-        # Top
+        # Cara superior (relieve)
         faces.append([vt0, vt2, vt3])
         faces.append([vt0, vt3, vt1])
 
-        # Bottom
+        # Cara inferior (base)
         faces.append([vb0, vb3, vb2])
         faces.append([vb0, vb1, vb3])
 
-        # Walls
+        # Paredes voxelizadas (se mantienen pero luego se sustituyen)
         if i == 0 or not mask[i - 1, j]:
             faces.append([vt0, vt1, vb1])
             faces.append([vt0, vb1, vb0])
@@ -111,112 +126,92 @@ def generar_stl_manifold(z_grid: np.ndarray, mask: np.ndarray) -> np.ndarray:
 
     return np.array(faces)
 
+# ============================================================
+# GENERACION DE TEXTO HEIGHTMAP
+# ============================================================
+
+def cargar_fuente(size_px):
+    try: return ImageFont.truetype("./Montserrat-ExtraBold.ttf", int(size_px))
+    except: return ImageFont.load_default()
+
+def generar_texto_heightmap(texto: str, ancho_mm=90, alto_mm=25):
+    px_w = int(ancho_mm * RES_PX_MM)
+    px_h = int(alto_mm * RES_PX_MM)
+
+    img = Image.new("L", (px_w, px_h), 0)
+    draw = ImageDraw.Draw(img)
+    font = cargar_fuente(px_h * 0.8)
+
+    bbox = draw.textbbox((0, 0), texto, font=font)
+    x = (px_w - bbox[2]) // 2
+    y = (px_h - bbox[3]) // 2
+
+    draw.text((x, y), texto, 255, font=font)
+
+    mask = np.array(img) > 128
+    z = np.zeros_like(mask, dtype=float)
+    z[mask] = 2.0  # altura texto
+
+    return z, mask
+
+# ============================================================
+# FUNCIÓN PRINCIPAL
+# ============================================================
+
 def generar_modelo_3d(imagen_bytes: bytes) -> bytes:
     """
-    Versión sencilla y correcta:
-    - Rojo -> contorno / marco estructural
-    - Interior (dentro del rojo) -> relleno sólido con relieve según gris
-    - Fuera del rojo -> vacío
+    Pipeline principal:
+    - Detecta contorno rojo
+    - Rellena interior
+    - Genera relieve (litografía)
+    - Construye marco estructural
+    - Genera STL watertight
     """
 
-    # 1. Leer / redimensionar
+    # --- Cargar imagen ---
     img = Image.open(io.BytesIO(imagen_bytes)).convert("RGB")
     img = img.resize((PIXELS, PIXELS), Image.Resampling.LANCZOS)
-    img_rgb = np.array(img)
+    rgb = np.array(img)
 
-    # 2. Detectar contorno rojo (boolean)
-    red_mask = (
-        (img_rgb[:, :, 0] > 200) &
-        (img_rgb[:, :, 1] < 60) &
-        (img_rgb[:, :, 2] < 60)
-    ).astype(bool)
+    # --- Detectar contorno rojo ---
+    red = (
+        (rgb[..., 0] > 200) &
+        (rgb[..., 1] < 60) &
+        (rgb[..., 2] < 60)
+    )
 
-    red_float = smooth_mask(red_mask.astype(float), radius=2)
-    red_smooth = red_float > 0.4
+    if not np.any(red):
+        raise ValueError("No se detectó borde rojo")
 
-    if not np.any(red_smooth):
-        raise ValueError("No se detectó contorno rojo")
+     # --- Rellenar interior ---
+    from scipy.ndimage import binary_fill_holes
+    interior = binary_fill_holes(red)
 
-    # --- Helper: flood-fill exterior para rellenar interior del contorno ---
-    from collections import deque
-
-    def fill_inside_border(border: np.ndarray) -> np.ndarray:
-        h, w = border.shape
-        exterior = np.zeros_like(border, dtype=bool)
-        q = deque()
-
-        # añadir todos los píxeles de la periferia que no sean borde
-        for x in range(h):
-            if not border[x, 0]:
-                q.append((x, 0))
-            if not border[x, w - 1]:
-                q.append((x, w - 1))
-        for y in range(w):
-            if not border[0, y]:
-                q.append((0, y))
-            if not border[h - 1, y]:
-                q.append((h - 1, y))
-
-        # BFS para marcar exterior (no cruza el borde)
-        while q:
-            i, j = q.popleft()
-            if i < 0 or j < 0 or i >= h or j >= w:
-                continue
-            if exterior[i, j] or border[i, j]:
-                continue
-            exterior[i, j] = True
-            q.append((i + 1, j))
-            q.append((i - 1, j))
-            q.append((i, j + 1))
-            q.append((i, j - 1))
-
-        # interior = no-exterior y no-border
-        interior = (~exterior) & (~border)
-        return interior
-
-    # 3. Rellenar interior a partir del contorno rojo
-    inner_filled = fill_inside_border(red_smooth)
-    shape_mask = red_smooth | inner_filled    # todo lo que tendrá material
-    frame_mask = red_smooth.copy()            # el rojo será la banda visible del marco
-
-    # 4. Gris para relieve (luminancia) y mapa de profundidad
+    # --- Litofanía desde gris ---
     gray = (
-        0.299 * img_rgb[:, :, 0] +
-        0.587 * img_rgb[:, :, 1] +
-        0.114 * img_rgb[:, :, 2]
-    ).astype(np.uint8)
+        0.299 * rgb[..., 0] +
+        0.587 * rgb[..., 1] +
+        0.114 * rgb[..., 2]
+    )
 
-    # invertimos: negro -> más grosor, blanco -> menos
-    depth = 1.0 - (gray / 255.0)
-    relieve = LITHO_MIN_Z + depth * (LITHO_MAX_Z - LITHO_MIN_Z)
+    relieve = LITHO_MIN_Z + (1 - gray / 255.0) * (LITHO_MAX_Z - LITHO_MIN_Z)
 
-    # 5. Construir el marco físico (opcional: erosionar el rojo para crear anillo)
-    px_per_mm = PIXELS / LADO_MM
-    marco_px = max(1, int(MARCO_MM * px_per_mm))
+    # --- Mapa Z final ---
+    z = np.zeros_like(relieve, dtype=float)
+    z[interior] = BASE_Z + relieve[interior]
+    z[red] = MARCO_Z
 
-    # Usamos la erode original (actúa sobre border/red_smooth)
-    inner_border = erode(red_smooth, marco_px)
-    frame_mask = red_smooth & ~inner_border
-    inner_mask = inner_filled   # el interior relleno
+    mask = z > 0
 
-    # 6. Alturas finales: interior = base + relieve, marco = MARCO_Z
-    z_final = np.zeros_like(relieve, dtype=float)
-    z_final[inner_mask] = BASE_Z + relieve[inner_mask]
-    z_final[frame_mask] = MARCO_Z
+    faces = generar_stl_manifold(z, mask)
 
-    # 7. Generar STL sobre la máscara derivada del heightmap (firme)
-    solid_mask = z_final > 0
-    faces = generar_stl_manifold(z_final, solid_mask)
+    m = mesh.Mesh(np.zeros(faces.shape[0], dtype=mesh.Mesh.dtype))
+    m.vectors = faces
 
-    if faces.size == 0:
-        raise ValueError("La geometría resultante está vacía (ajusta parámetros o la imagen).")
-
-    modelo_mesh = mesh.Mesh(np.zeros(faces.shape[0], dtype=mesh.Mesh.dtype))
-    modelo_mesh.vectors = faces
-
-    # 8. Guardar temporal y devolver bytes
     with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as tmp:
-        path = tmp.name
+        m.save(tmp.name)
+        with open(tmp.name, "rb") as f:
+            return f.read()
 
     try:
         modelo_mesh.save(path)

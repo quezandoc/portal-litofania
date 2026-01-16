@@ -1,0 +1,140 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;700&family=Roboto:wght@400;500;600&display=swap');
+@import 'tailwindcss';
+@plugin '@tailwindcss/forms';
+@plugin '@tailwindcss/typography';
+
+/* ==========================================
+   Sistema de Temas - Paleta Romántica
+   ========================================== */
+
+:root {
+    /* === PRIMARIO – ROSA VINO === */
+    --color-primary-50: #FFF1F4;
+    --color-primary-100: #FFE4EA;
+    --color-primary-200: #FEC7D5;
+    --color-primary-300: #F9A3BB;
+    --color-primary-400: #F06A94;
+    --color-primary-500: #E11D6F;
+    --color-primary-600: #C0155F;
+    --color-primary-700: #9B134F;
+    --color-primary-800: #7C0F3E;
+    --color-primary-900: #5C0B2E;
+
+    /* === SECUNDARIO – TAUPE ROSADO === */
+    --color-secondary-50: #FAF8F9;
+    --color-secondary-100: #F1ECEE;
+    --color-secondary-200: #E2D8DC;
+    --color-secondary-300: #CBB7BE;
+    --color-secondary-400: #A78E96;
+    --color-secondary-500: #7A626A;
+    --color-secondary-600: #6B565E;
+    --color-secondary-700: #57464D;
+    --color-secondary-800: #43363B;
+    --color-secondary-900: #302628;
+
+    /* === ÉXITO – VERDE SALVIA === */
+    --color-success-50: #F3FAF6;
+    --color-success-100: #E1F2E8;
+    --color-success-200: #C7E6D4;
+    --color-success-300: #9FD1B3;
+    --color-success-400: #6FB58D;
+    --color-success-500: #4E9A73;
+    --color-success-600: #3D7E5E;
+    --color-success-700: #33654D;
+    --color-success-800: #2A5240;
+    --color-success-900: #214235;
+
+    /* === ADVERTENCIA – CHAMPAGNE === */
+    --color-warning-50: #FFFBF3;
+    --color-warning-100: #FEF3D6;
+    --color-warning-200: #FDE6AA;
+    --color-warning-300: #FAD27A;
+    --color-warning-400: #F4B942;
+    --color-warning-500: #E3A008;
+    --color-warning-600: #C18407;
+    --color-warning-700: #9C6906;
+    --color-warning-800: #7D5505;
+    --color-warning-900: #654504;
+
+    /* === ERROR – GRANATE ROSADO === */
+    --color-error-50: #FEF2F4;
+    --color-error-100: #FDE1E7;
+    --color-error-200: #FBC3D1;
+    --color-error-300: #F59AAC;
+    --color-error-400: #EC6B88;
+    --color-error-500: #D93A5E;
+    --color-error-600: #B72D4D;
+    --color-error-700: #962441;
+    --color-error-800: #7A1D35;
+    --color-error-900: #5C1628;
+
+    /* === INFO – LAVANDA SUAVE === */
+    --color-info-50: #F5F3FF;
+    --color-info-100: #EDE9FE;
+    --color-info-200: #DDD6FE;
+    --color-info-300: #C4B5FD;
+    --color-info-400: #A78BFA;
+    --color-info-500: #8B5CF6;
+    --color-info-600: #7C3AED;
+    --color-info-700: #6D28D9;
+    --color-info-800: #5B21B6;
+    --color-info-900: #4C1D95;
+
+    /* === FONDOS === */
+    --bg-primary: #FFF7F9;
+    --bg-secondary: #F6ECEF;
+    --bg-tertiary: #EEDFE4;
+    --bg-elevated: #FFFFFF;
+    --bg-overlay: rgba(60, 20, 40, 0.5);
+    --bg-hover: #F3E5EA;
+    --bg-active: #EAD8DE;
+    --bg-disabled: #F2EBEE;
+
+    /* === TEXTO === */
+    --text-primary: #3A2A30;
+    --text-secondary: #6F5A62;
+    --text-tertiary: #9C8890;
+    --text-disabled: #C6B8BE;
+    --text-inverse: #FFFFFF;
+    --text-link: #E11D6F;
+    --text-link-hover: #C0155F;
+
+    /* === BORDES === */
+    --border-primary: #E5D6DB;
+    --border-secondary: #D3C0C7;
+    --border-focus: #E11D6F;
+    --border-error: var(--color-error-500);
+
+    /* === SOMBRAS SUAVES === */
+    --shadow-sm: 0 1px 2px rgba(60, 20, 40, 0.05);
+    --shadow-md: 0 4px 6px rgba(60, 20, 40, 0.08);
+    --shadow-lg: 0 10px 15px rgba(60, 20, 40, 0.12);
+    --shadow-xl: 0 20px 25px rgba(60, 20, 40, 0.16);
+}
+
+/* === TEMA OSCURO ROMÁNTICO === */
+
+[data-theme='dark'] {
+    --bg-primary: #1F1419;
+    --bg-secondary: #2A1B22;
+    --bg-tertiary: #36232B;
+    --bg-elevated: #2A1B22;
+    --bg-hover: #3A2630;
+    --bg-active: #4A313D;
+
+    --text-primary: #F8EDEF;
+    --text-secondary: #D8C5CC;
+    --text-tertiary: #B79FA7;
+    --text-disabled: #7A6069;
+    --text-link: #F06A94;
+    --text-link-hover: #F9A3BB;
+
+    --border-primary: #3A2630;
+    --border-secondary: #523641;
+    --border-focus: #F06A94;
+
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.45);
+    --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.5);
+}

@@ -1,7 +1,9 @@
 """
 FastAPI backend para LithoMaker Pro
+Frontend-driven: recibe imagen final y genera STL
 """
-from fastapi import FastAPI, File, UploadFile, Query
+
+from fastapi import FastAPI, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 import io
@@ -9,91 +11,77 @@ import logging
 
 from core import generar_modelo_3d
 
-# Configurar logging
+# -----------------------
+# Configuración logging
+# -----------------------
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("lithomaker")
 
-# Crear app FastAPI
+# -----------------------
+# App FastAPI
+# -----------------------
 app = FastAPI(
     title="LithoMaker Pro API",
-    description="API para generar modelos 3D a partir de imágenes",
-    version="1.0.0",
+    description="API para generar modelos STL desde imágenes raster",
+    version="2.0.0",
 )
 
-# Configurar CORS
+# -----------------------
+# CORS
+# -----------------------
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000", "*"],
+    allow_origins=["*"],  # ajusta en producción
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-
+# -----------------------
+# Health check
+# -----------------------
 @app.get("/health")
 async def health_check():
-    """Verificar que la API está disponible."""
     return {"status": "ok"}
 
-
+# -----------------------
+# Generar STL
+# -----------------------
 @app.post("/api/generate-3d/")
-async def generate_3d(
-    file: UploadFile = File(...),
-    shape: str = Query("Corazón", description="Forma: Corazón, Círculo, Cuadrado"),
-    zoom: float = Query(1.2, ge=0.5, le=3.0, description="Factor de zoom"),
-    frame_width: float = Query(3.0, ge=2.0, le=5.0, description="Ancho del marco en mm"),
-    offset_x: int = Query(0, ge=-60, le=60, description="Desplazamiento X"),
-    offset_y: int = Query(0, ge=-60, le=60, description="Desplazamiento Y"),
-):
+async def generate_3d(file: UploadFile = File(...)):
     """
-    Genera un modelo 3D STL a partir de una imagen.
-    
-    - **file**: Archivo de imagen (JPG, PNG, JPEG)
-    - **shape**: Forma del modelo (Corazón, Círculo, Cuadrado)
-    - **zoom**: Factor de zoom (0.5 - 3.0)
-    - **frame_width**: Ancho del marco en mm (2.0 - 5.0)
-    - **offset_x**: Desplazamiento horizontal en píxeles (-60 a 60)
-    - **offset_y**: Desplazamiento vertical en píxeles (-60 a 60)
+    Genera un STL a partir de una imagen FINAL enviada por el frontend.
+
+    - Negro = vacío
+    - Blanco / gris = relieve
     """
+
+    if file.content_type not in ("image/png", "image/jpeg"):
+        return {"detail": "Solo se aceptan imágenes PNG o JPG"}
+
     try:
-        # Validar tipo de archivo
-        if file.content_type not in ["image/jpeg", "image/png"]:
-            return {"detail": "Solo se aceptan archivos JPG o PNG"}
+        image_bytes = await file.read()
+        logger.info("Generando STL desde imagen raster")
 
-        # Leer contenido del archivo
-        contents = await file.read()
+        stl_bytes = generar_modelo_3d(image_bytes)
 
-        logger.info(
-            f"Generando modelo: forma={shape}, zoom={zoom}, frame_width={frame_width}"
-        )
+        logger.info(f"STL generado ({len(stl_bytes)} bytes)")
 
-        # Generar modelo
-        stl_bytes = generar_modelo_3d(
-            imagen_bytes=contents,
-            forma=shape,
-            zoom=zoom,
-            frame_width=frame_width,
-            offset_x=offset_x,
-            offset_y=offset_y,
-        )
-
-        logger.info(f"Modelo generado exitosamente. Tamaño: {len(stl_bytes)} bytes")
-
-        # Retornar archivo STL
         return StreamingResponse(
             io.BytesIO(stl_bytes),
             media_type="application/sla",
             headers={
-                "Content-Disposition": f"attachment; filename=litho_{shape.lower()}_manifold.stl"
+                "Content-Disposition": "attachment; filename=litho.stl"
             },
         )
 
     except ValueError as e:
-        logger.error(f"Error de validación: {str(e)}")
+        logger.warning(f"Error de validación: {e}")
         return {"detail": str(e)}
+
     except Exception as e:
-        logger.error(f"Error inesperado: {str(e)}")
-        return {"detail": f"Error al generar el modelo: {str(e)}"}
+        logger.exception("Error inesperado generando STL")
+        return {"detail": "Error interno al generar el modelo"}
 
 
 if __name__ == "__main__":

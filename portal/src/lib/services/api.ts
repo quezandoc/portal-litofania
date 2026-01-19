@@ -14,15 +14,11 @@ export interface GenerateModelRequest {
 }
 
 export async function generateModel(
-	{ file, filename = 'litho.png', texto = '', texto_alto_mm = 12, texto_margin_mm = 4 }: GenerateModelRequest
+	{ file, filename = 'litho.png'}: GenerateModelRequest
 ): Promise<Blob> {
 
 	const formData = new FormData();
 	formData.append('file', file, filename);
-	// agrego los campos del texto (coinciden con los nombres Form(...) del backend)
-	formData.append('texto', texto);
-	formData.append('texto_alto_mm', String(texto_alto_mm));
-	formData.append('texto_margin_mm', String(texto_margin_mm));
 
 	const response = await fetch(`${API_BASE_URL}/api/generate-3d/`, {
 		method: 'POST',

@@ -61,53 +61,12 @@
                 alert("No se pudo generar la máscara final.");
                 return;
             }
-
-            // ============================
-            // 2. Cálculo automático en mm
-            // ============================
-            const clamp = (v: number, min: number, max: number) =>
-                Math.min(max, Math.max(min, v));
-
-            const charCount = text.trim().length;
-
-            // Parámetros base (en mm)
-            const BASE_TEXT_MM = 24;
-            const MIN_TEXT_MM = 12;
-            const MAX_TEXT_MM = 32;
-            const REDUCTION_PER_CHAR = 0.6;
-
-            const PLACA_MM = 90;
-            const SAFE_MARGIN_MM = 5; // respiración visual
-            const MAX_TEXT_WIDTH_MM = PLACA_MM - SAFE_MARGIN_MM * 2;
-
-            // Montserrat ExtraBold
-            const CHAR_WIDTH_FACTOR = 0.64;
-
-            // Cálculo del alto del texto
-            let texto_alto_mm = clamp(
-                BASE_TEXT_MM - charCount * REDUCTION_PER_CHAR,
-                MIN_TEXT_MM,
-                MAX_TEXT_MM,
-            );
-
-            let texto_ancho_estimado_mm =
-                charCount * texto_alto_mm * CHAR_WIDTH_FACTOR;
-
-            if (texto_ancho_estimado_mm > MAX_TEXT_WIDTH_MM) {
-                texto_alto_mm *= MAX_TEXT_WIDTH_MM / texto_ancho_estimado_mm;
-            }
-
-            const texto_margin_mm = clamp(texto_alto_mm * 0.4, 3, 8);
-
             // ============================
             // 3. Enviar al backend
             // ============================
             const stlBlob = await generateModel({
                 file: blob,
-                filename: "litho.png",
-                texto: text.trim(),
-                texto_alto_mm,
-                texto_margin_mm,
+                filename: "litho.png"
             });
 
             stlPreview = stlBlob;

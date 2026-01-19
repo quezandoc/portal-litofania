@@ -23,8 +23,7 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
-lib64/
+.v
 parts/
 sdist/
 var/
@@ -157,8 +156,8 @@ out/
 
 # Directorios de build específicos
 /backend/venv/
-/frontend/node_modules/
-/frontend/.svelte-kit/
+/portal/node_modules/
+/portal/.svelte-kit/
 
 # Archivos específicos del sistema
 .env.development.local

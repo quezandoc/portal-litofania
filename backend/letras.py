@@ -315,7 +315,6 @@ def generar_base_texto_stl(texto: str) -> bytes:
         texto,
         TEXTO_X_MM,
         TEXTO_Y_MM,
-        True
     )
 
     z_base = np.full((base_h_px, base_w_px), BASE_Z_MM)

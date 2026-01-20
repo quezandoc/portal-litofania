@@ -1,15 +1,16 @@
 <script lang="ts">
     import * as THREE from "three";
     import { STLLoader } from "three/examples/jsm/loaders/STLLoader.js";
+    import type { StlItem } from "$lib/types/stl";
 
     /* ───────── Props ───────── */
 
     let {
-        stl,
+        stls = [],
         size = 400,
         background = "#f6f6f6",
     } = $props<{
-        stl: Blob | null;
+        stls: StlItem[];
         size?: number;
         background?: string;
     }>();
@@ -23,7 +24,7 @@
     let scene: THREE.Scene;
     let camera: THREE.PerspectiveCamera;
     let renderer: THREE.WebGLRenderer;
-    let mesh: THREE.Mesh | null = null;
+    let group: THREE.Group | null = null;
 
     let baseCameraZ = 120;
 
@@ -38,8 +39,11 @@
 
     /* ───────── Init ───────── */
 
+    let initialized = false;
+
     $effect(() => {
-        if (!canvas) return;
+        if (!canvas || initialized) return;
+        initialized = true;
 
         scene = new THREE.Scene();
         scene.background = new THREE.Color(background);
@@ -61,42 +65,86 @@
         light.position.set(10, 20, 10);
         scene.add(light);
 
+        group = new THREE.Group();
+        scene.add(group);
+
         animate();
     });
 
     /* ───────── STL load ───────── */
 
     $effect(() => {
-        if (!stl || !scene) return;
+        if (!scene || !group) return;
 
-        const reader = new FileReader();
-        reader.onload = () => {
-            const loader = new STLLoader();
-            const geometry = loader.parse(reader.result as ArrayBuffer);
+        // limpiar grupo
+        group.clear();
 
-            geometry.center();
-            geometry.computeVertexNormals();
+        if (!stls.length) return;
 
-            const material = new THREE.MeshStandardMaterial({
-                color: 0x8a8a8a,
-                roughness: 0.6,
-                metalness: 0.1,
-            });
+        const loader = new STLLoader();
+        const box = new THREE.Box3();
 
-            if (mesh) scene.remove(mesh);
+        let loaded = 0;
 
-            mesh = new THREE.Mesh(geometry, material);
-            scene.add(mesh);
+        for (const item of stls) {
+            const reader = new FileReader();
 
-            // 📐 ajuste cámara
-            const box = new THREE.Box3().setFromObject(mesh);
-            const len = box.getSize(new THREE.Vector3()).length();
-            baseCameraZ = len * 1.3;
+            reader.onload = () => {
+                const geometry = loader.parse(reader.result as ArrayBuffer);
+                geometry.computeVertexNormals();
 
-            resetView();
-        };
+                const material = new THREE.MeshStandardMaterial({
+                    color: 0x8a8a8a,
+                    roughness: 0.6,
+                    metalness: 0.1,
+                });
 
-        reader.readAsArrayBuffer(stl);
+                const mesh = new THREE.Mesh(geometry, material);
+
+                /* ───── ROTACIÓN (grados → radianes) ───── */
+
+                if (item.rotation) {
+                    mesh.rotation.set(
+                        item.rotation.x
+                            ? THREE.MathUtils.degToRad(item.rotation.x)
+                            : 0,
+                        item.rotation.y
+                            ? THREE.MathUtils.degToRad(item.rotation.y)
+                            : 0,
+                        item.rotation.z
+                            ? THREE.MathUtils.degToRad(item.rotation.z)
+                            : 0,
+                    );
+                }
+
+                /* ───── OFFSET ───── */
+
+                if (item.offset) {
+                    mesh.position.set(
+                        item.offset.x ?? 0,
+                        item.offset.y ?? 0,
+                        item.offset.z ?? 0,
+                    );
+                }
+
+                group!.add(mesh);
+                box.expandByObject(mesh);
+
+                loaded++;
+
+                if (loaded === stls.length) {
+                    const center = box.getCenter(new THREE.Vector3());
+                    group!.position.sub(center);
+
+                    const len = box.getSize(new THREE.Vector3()).length();
+                    baseCameraZ = len * 1.3;
+
+                    resetView();
+                }
+            };
+
+            reader.readAsArrayBuffer(item.file);
+        }
     });
 
     /* ───────── Render loop ───────── */
@@ -104,9 +152,9 @@
     function animate() {
         requestAnimationFrame(animate);
 
-        if (mesh) {
-            mesh.rotation.x = rotationX;
-            mesh.rotation.y = rotationY;
+        if (group) {
+            group.rotation.x = rotationX;
+            group.rotation.y = rotationY;
         }
 
         camera.position.z = baseCameraZ;
@@ -114,11 +162,6 @@
     }
 
     /* ───────── Helpers ───────── */
-
-    function clamp(v: number, min: number, max: number) {
-        if (!Number.isFinite(v)) return min;
-        return Math.min(max, Math.max(min, v));
-    }
 
     function resetView() {
         rotationX = 0;

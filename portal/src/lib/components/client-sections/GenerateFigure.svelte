@@ -5,8 +5,14 @@
     import ImageCanvas from "$lib/components/core/ImageCanvas.svelte";
     import KeyTextInput from "$lib/components/core/KeyTextInput.svelte";
     import StlViewer from "$lib/components/core/StlViewer.svelte";
+    import { createEventDispatcher } from "svelte";
 
-    import { generateModel, generateTextBase } from "$lib/services/api";
+    const dispatch = createEventDispatcher<{
+        generar: {
+            imagen?: Blob;
+            texto?: string;
+        };
+    }>();
 
     let frameWidth = $state(24.0);
     let zoom = $state(1.0);
@@ -32,7 +38,7 @@
     // svelte-ignore non_reactive_update
     let canvasRef: any;
 
-    async function generarFigura() {
+    async function generar() {
         // ============================
         // Validaciones obligatorias
         // ============================
@@ -41,102 +47,36 @@
             return;
         }
 
-        if (!text || text.trim() === "") {
-            alert("Debes ingresar un texto para generar la litofanía.");
-            return;
-        }
-
         if (!canvasRef) {
             alert("El lienzo no está listo todavía.");
             return;
         }
 
-        try {
-            // ============================
-            // 1. Exportar máscara final
-            // ============================
-            const blob: Blob = await canvasRef.exportMasked();
-
-            if (!blob || blob.size === 0) {
-                alert("No se pudo generar la máscara final.");
-                return;
-            }
-            // ============================
-            // 3. Enviar al backend
-            // ============================
-            const stlBlob = await generateModel({
-                file: blob,
-                filename: "litho.png",
-            });
-
-            stlPreview = stlBlob;
-
-            // ============================
-            // 4. Descargar STL
-            // ============================
-            const url = URL.createObjectURL(stlBlob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = "litho.stl";
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            URL.revokeObjectURL(url);
-        } catch (err) {
-            console.error(err);
-            alert(
-                err instanceof Error
-                    ? err.message
-                    : "Error al generar el modelo 3D",
-            );
-        }
-    }
-
-    async function generarTextoBase() {
-        // ============================
-        // Validaciones obligatorias
-        // ============================
         if (!text || text.trim() === "") {
             alert("Debes ingresar un texto para generar la base.");
             return;
         }
 
-        try {
-            // ============================
-            // 1. Enviar texto al backend
-            // ============================
-            const stlBlob = await generateTextBase({
-                texto: text.trim().toUpperCase(),
-            });
+        // ============================
+        // 1. Exportar máscara final
+        // ============================
+        let blob: Blob = await canvasRef.exportMasked();
 
-            // (opcional) preview
-            stlPreview = stlBlob;
-
-            // ============================
-            // 2. Descargar STL
-            // ============================
-            const url = URL.createObjectURL(stlBlob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = "base_texto.stl";
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            URL.revokeObjectURL(url);
-        } catch (err) {
-            console.error(err);
-            alert(
-                err instanceof Error
-                    ? err.message
-                    : "Error al generar la base de texto",
-            );
+        if (!blob || blob.size === 0) {
+            alert("No se pudo generar la máscara final.");
+            return;
         }
+
+        dispatch("generar", {
+            imagen: blob,
+            texto: text.trim().toUpperCase(),
+        });
     }
 </script>
 
 <section class="hero bg-surface-1">
     <!-- <h2 class="title-section">Card Title</h2> -->
-    <div class="card grid grid-2 bg-gradient-glass border-2 p-4">
+    <div class="card grid grid-2 bg-gradient-glass p-4">
         <div>
             <ImageUploader bind:src={imageSrc} />
             <KeyTextInput
@@ -198,7 +138,7 @@
                         bind:value={rotation}
                     />
                     <button
-                        onclick={() => generarTextoBase()}
+                        onclick={() => generar()}
                         class="btn btn-primary block"
                     >
                         Comienza tu proyecto
@@ -224,8 +164,3 @@
         {/if}
     </div>
 </section>
-{#if stlPreview}
-    <section class="hero bg-surface-1">
-        <StlViewer stl={stlPreview} size={1200} />
-    </section>
-{/if}

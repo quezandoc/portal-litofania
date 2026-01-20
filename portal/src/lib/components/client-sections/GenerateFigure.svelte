@@ -6,7 +6,7 @@
     import KeyTextInput from "$lib/components/core/KeyTextInput.svelte";
     import StlViewer from "$lib/components/core/StlViewer.svelte";
 
-    import { generateModel } from "$lib/services/api";
+    import { generateModel, generateTextBase } from "$lib/services/api";
 
     let frameWidth = $state(24.0);
     let zoom = $state(1.0);
@@ -66,7 +66,7 @@
             // ============================
             const stlBlob = await generateModel({
                 file: blob,
-                filename: "litho.png"
+                filename: "litho.png",
             });
 
             stlPreview = stlBlob;
@@ -88,6 +88,47 @@
                 err instanceof Error
                     ? err.message
                     : "Error al generar el modelo 3D",
+            );
+        }
+    }
+
+    async function generarTextoBase() {
+        // ============================
+        // Validaciones obligatorias
+        // ============================
+        if (!text || text.trim() === "") {
+            alert("Debes ingresar un texto para generar la base.");
+            return;
+        }
+
+        try {
+            // ============================
+            // 1. Enviar texto al backend
+            // ============================
+            const stlBlob = await generateTextBase({
+                texto: text.trim().toUpperCase(),
+            });
+
+            // (opcional) preview
+            stlPreview = stlBlob;
+
+            // ============================
+            // 2. Descargar STL
+            // ============================
+            const url = URL.createObjectURL(stlBlob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "base_texto.stl";
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+        } catch (err) {
+            console.error(err);
+            alert(
+                err instanceof Error
+                    ? err.message
+                    : "Error al generar la base de texto",
             );
         }
     }
@@ -157,7 +198,7 @@
                         bind:value={rotation}
                     />
                     <button
-                        onclick={() => generarFigura()}
+                        onclick={() => generarTextoBase()}
                         class="btn btn-primary block"
                     >
                         Comienza tu proyecto
@@ -180,9 +221,6 @@
                 bind:offsetY
                 size={900}
             />
-        {/if}
-        {#if stlPreview}
-            <StlViewer stl={stlPreview} size={1200} />
         {/if}
     </div>
 </section>

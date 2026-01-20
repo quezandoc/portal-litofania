@@ -3,13 +3,15 @@ FastAPI backend para LithoMaker Pro
 Frontend-driven: recibe imagen final y genera STL
 """
 
-from fastapi import FastAPI, File, UploadFile
+from fastapi import FastAPI, File, UploadFile, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 import io
 import logging
 
-from core import generar_modelo_3d
+from litofania import generar_modelo_3d
+from letras import generar_base_texto_stl
+
 
 # -----------------------
 # Configuración logging
@@ -82,6 +84,20 @@ async def generate_3d(file: UploadFile = File(...)):
     except Exception as e:
         logger.exception("Error inesperado generando STL")
         return {"detail": "Error interno al generar el modelo"}
+
+@app.post("/api/generate-text-base/")
+async def generate_text_base(texto: str = Form(...)):
+    logger.info(f"Generando base texto: {texto}")
+
+    stl_bytes = generar_base_texto_stl(texto)
+
+    return StreamingResponse(
+        io.BytesIO(stl_bytes),
+        media_type="application/sla",
+        headers={
+            "Content-Disposition": "attachment; filename=base_texto.stl"
+        },
+    )
 
 
 if __name__ == "__main__":

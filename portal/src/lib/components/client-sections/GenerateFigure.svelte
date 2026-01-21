@@ -1,10 +1,10 @@
 <script lang="ts">
-    import RangeSlider from "$lib/components/core/RangeSlider.svelte";
-    import RadioButtonGroup from "$lib/components/core/RadioButtonGroup.svelte";
+    import RangeSlider from "$lib/components/ui/RangeSlider.svelte";
+    import RadioButtonGroup from "$lib/components/ui/RadioButtonGroup.svelte";
     import ImageUploader from "$lib/components/core/ImageUploader.svelte";
     import ImageCanvas from "$lib/components/core/ImageCanvas.svelte";
     import KeyTextInput from "$lib/components/core/KeyTextInput.svelte";
-    import StlViewer from "$lib/components/core/StlViewer.svelte";
+
     import { createEventDispatcher } from "svelte";
 
     const dispatch = createEventDispatcher<{

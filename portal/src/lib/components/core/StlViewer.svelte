@@ -1,18 +1,27 @@
 <script lang="ts">
     import * as THREE from "three";
     import { STLLoader } from "three/examples/jsm/loaders/STLLoader.js";
-    import type { StlItem } from "$lib/types/stl";
+
+    type Vec3 = {
+        x?: number;
+        y?: number;
+        z?: number;
+    };
+
+    export type StlItem = {
+        file: Blob;
+
+        rotation?: Vec3; // grados
+        offset?: Vec3; // unidades Three.js
+
+        color?: string | number;
+    };
 
     /* ───────── Props ───────── */
 
-    let {
-        stls = [],
-        size = 400,
-        background = "#f6f6f6",
-    } = $props<{
+    let { stls = [], size = 400 } = $props<{
         stls: StlItem[];
         size?: number;
-        background?: string;
     }>();
 
     /* ───────── DOM ───────── */
@@ -41,12 +50,20 @@
 
     let initialized = false;
 
+    function getCssVar(name: string, fallback = "#2b2b2b") {
+        return (
+            getComputedStyle(document.documentElement)
+                .getPropertyValue(name)
+                .trim() || fallback
+        );
+    }
+
     $effect(() => {
         if (!canvas || initialized) return;
         initialized = true;
 
         scene = new THREE.Scene();
-        scene.background = new THREE.Color(background);
+        scene.background = new THREE.Color(getCssVar("--color-primary-300"));
 
         camera = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
         camera.position.set(0, 0, baseCameraZ);
@@ -94,7 +111,9 @@
                 geometry.computeVertexNormals();
 
                 const material = new THREE.MeshStandardMaterial({
-                    color: 0x8a8a8a,
+                    color: item.color
+                        ? new THREE.Color(item.color)
+                        : new THREE.Color(0x8a8a8a),
                     roughness: 0.6,
                     metalness: 0.1,
                 });
@@ -227,7 +246,7 @@
 
     canvas {
         border-radius: 0.75rem;
-        background: var(--color-primary-100);
+        background-color: var(--color-primary-200);
         cursor: grab;
     }
 

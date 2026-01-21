@@ -2,7 +2,7 @@
 	import "./design.css";
 	import Generate from "$lib/components/client-sections/GenerateFigure.svelte";
 	import Visualize from "$lib/components/client-sections/VisualizeFigure.svelte";
-	import LoadingOverlay from "$lib/components/core/LoadingOverlay.svelte";
+	import LoadingOverlay from "$lib/components/ui/LoadingOverlay.svelte";
 	import { generateModel, generateTextBase } from "$lib/services/api";
 
 	let loading = $state(false);
